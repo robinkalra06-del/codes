@@ -3,8 +3,20 @@ import bodyParser from 'body-parser';
 import fs from 'fs';
 import { GoogleAuth } from 'google-auth-library';
 import path from 'path';
+import cors from 'cors';   // <-- Added CORS
 
 const app = express();
+
+// ✅ Enable CORS for your frontend domain
+app.use(cors({
+  origin: "https://cheking.pages.dev",
+  methods: ["GET", "POST", "DELETE"],
+  allowedHeaders: ["Content-Type"]
+}));
+
+// Required for preflight CORS on Render
+app.options("*", cors());
+
 app.use(bodyParser.json());
 app.use(express.static(path.join(process.cwd(), 'public')));
 
@@ -23,7 +35,7 @@ function writeSubscribers(list) {
   fs.writeFileSync(SUB_FILE, JSON.stringify(list, null, 2), 'utf8');
 }
 
-// Load service account placeholder (replace with real file)
+// Load service account placeholder
 let serviceAccount = null;
 const servicePath = 'service-account.json';
 if (fs.existsSync(servicePath)) {
@@ -32,7 +44,7 @@ if (fs.existsSync(servicePath)) {
   console.warn('[WARN] service-account.json not found. FCM send will fail until you add it.');
 }
 
-// Google Auth setup (lazy)
+// Google Auth setup
 let auth = null;
 function getAuth() {
   if (!serviceAccount) throw new Error('service-account.json missing');
@@ -45,7 +57,7 @@ function getAuth() {
   return auth;
 }
 
-// Public API: register token (widget will POST here)
+// Register token
 app.post('/api/register-token', (req, res) => {
   const { token } = req.body;
   if (!token) return res.status(400).json({ success: false, error: 'token required' });
@@ -60,7 +72,7 @@ app.post('/api/register-token', (req, res) => {
   res.json({ success: true });
 });
 
-// Get subscribers (dashboard)
+// Get subscribers
 app.get('/api/subscribers', (req, res) => {
   const list = readSubscribers();
   res.json(list);
@@ -75,7 +87,7 @@ app.delete('/api/subscribers/:token', (req, res) => {
   res.json({ success: true });
 });
 
-// Send notification: body { title, body, token? } - if token omitted sends to all
+// Send Notifications
 app.post('/api/send', async (req, res) => {
   const { title, body: messageBody, token } = req.body;
   if (!title || !messageBody) return res.status(400).json({ success: false, error: 'title and body required' });
@@ -120,7 +132,7 @@ app.post('/api/send', async (req, res) => {
   }
 });
 
-// Serve dashboard UI
+// Dashboard
 app.get('/dashboard', (req, res) => {
   res.sendFile(path.join(process.cwd(), 'public', 'dashboard.html'));
 });
