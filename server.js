@@ -16,20 +16,23 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(bodyParser.json());
 app.use(express.static(path.join(process.cwd(), 'public')));
 
-const admin = require("firebase-admin");
-
-// --- Firebase Admin Initialization (Using Render Secret File) ---
-try {
-  const serviceAccount = require("/etc/secrets/service-account.json");
-
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
-
-  console.log("🔥 Firebase Admin initialized using /etc/secrets/service-account.json");
-} catch (err) {
-  console.error("❌ Failed to load Firebase service account file:", err.message);
-  process.exit(1);
+// --- Firebase Admin init ---
+if (process.env.SERVICE_ACCOUNT_JSON) {
+  try {
+    const svc = JSON.parse(process.env.SERVICE_ACCOUNT_JSON);
+    admin.initializeApp({
+      credential: admin.credential.cert(svc)
+    });
+    console.log('Firebase Admin initialized from SERVICE_ACCOUNT_JSON');
+  } catch (e) {
+    console.error('Failed to parse SERVICE_ACCOUNT_JSON', e.message);
+    process.exit(1);
+  }
+} else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  admin.initializeApp();
+  console.log('Firebase Admin initialized via GOOGLE_APPLICATION_CREDENTIALS');
+} else {
+  console.warn('No Firebase credentials provided. Set SERVICE_ACCOUNT_JSON or GOOGLE_APPLICATION_CREDENTIALS');
 }
 
 // --- SQLite DB ---
