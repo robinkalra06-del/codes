@@ -1,127 +1,117 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>WebPush Admin Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+  <meta charset="utf-8">
+  <title>Professional WebPush Admin</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-900 text-gray-100">
-  <div class="flex min-h-screen">
+  <div id="app" class="min-h-screen flex">
     <!-- Sidebar -->
-    <aside class="w-64 bg-gray-800 p-6 space-y-6">
-      <h1 class="text-2xl font-bold">WebPush Admin</h1>
-      <nav class="space-y-4">
-        <button onclick="showPanel('register')" class="w-full text-left py-2 px-3 bg-gray-700 hover:bg-gray-600 rounded">Register Token</button>
-        <button onclick="showPanel('send')" class="w-full text-left py-2 px-3 bg-gray-700 hover:bg-gray-600 rounded">Send Notification</button>
-        <button onclick="showPanel('broadcast')" class="w-full text-left py-2 px-3 bg-gray-700 hover:bg-gray-600 rounded">Broadcast</button>
-        <button onclick="showPanel('tokens')" class="w-full text-left py-2 px-3 bg-gray-700 hover:bg-gray-600 rounded">All Tokens</button>
+    <aside class="w-72 bg-gray-800 p-6">
+      <h1 class="text-2xl font-bold mb-6">WebPush Admin</h1>
+      <div id="user-info" class="mb-6 hidden">
+        <div class="text-sm">Logged in as <span id="admin-email" class="font-medium"></span></div>
+        <button id="logoutBtn" class="mt-2 px-3 py-2 bg-red-600 rounded">Logout</button>
+      </div>
+      <nav class="space-y-3">
+        <button onclick="show('dashboard')" class="w-full text-left py-2 px-3 bg-gray-700 hover:bg-gray-600 rounded">Dashboard</button>
+        <button onclick="show('tokens')" class="w-full text-left py-2 px-3 bg-gray-700 hover:bg-gray-600 rounded">Tokens</button>
+        <button onclick="show('send')" class="w-full text-left py-2 px-3 bg-gray-700 hover:bg-gray-600 rounded">Send</button>
+        <button onclick="show('broadcast')" class="w-full text-left py-2 px-3 bg-gray-700 hover:bg-gray-600 rounded">Broadcast</button>
+        <button onclick="show('logs')" class="w-full text-left py-2 px-3 bg-gray-700 hover:bg-gray-600 rounded">Logs</button>
       </nav>
     </aside>
 
-    <!-- Main Content -->
-    <main class="flex-1 p-10">
-      <h2 id="panel-title" class="text-3xl font-bold mb-6">Dashboard</h2>
+    <!-- Main -->
+    <main class="flex-1 p-8">
+      <div id="login-panel" class="max-w-md mx-auto bg-gray-800 p-6 rounded">
+        <h2 class="text-xl font-semibold mb-4">Admin Login</h2>
+        <input id="loginEmail" class="w-full p-2 mb-2 bg-gray-700 rounded" placeholder="Email">
+        <input id="loginPassword" type="password" class="w-full p-2 mb-4 bg-gray-700 rounded" placeholder="Password">
+        <button id="loginBtn" class="w-full p-2 bg-blue-600 rounded">Login</button>
+        <p class="text-sm text-gray-400 mt-3">Use env ADMIN_EMAIL and ADMIN_PASSWORD (or hashed) to login.</p>
+      </div>
 
-      <!-- Panels -->
-      <div id="register-panel" class="panel hidden">
-        <div class="bg-gray-800 p-6 rounded-lg space-y-4 max-w-xl">
-          <h3 class="text-xl font-semibold">Register Token</h3>
-          <input id="regUser" class="w-full px-3 py-2 bg-gray-700 rounded" placeholder="User ID" />
-          <input id="regToken" class="w-full px-3 py-2 bg-gray-700 rounded" placeholder="FCM Token" />
-          <button onclick="registerToken()" class="w-full py-2 bg-blue-600 hover:bg-blue-500 rounded">Register</button>
+      <div id="dashboard" class="hidden">
+        <h2 class="text-2xl font-bold mb-4">Dashboard</h2>
+        <div class="grid grid-cols-3 gap-4 mb-6">
+          <div class="bg-gray-800 p-4 rounded">
+            <div class="text-sm text-gray-400">Registered Tokens</div>
+            <div id="statTokens" class="text-2xl font-bold">—</div>
+          </div>
+          <div class="bg-gray-800 p-4 rounded">
+            <div class="text-sm text-gray-400">Last Broadcast</div>
+            <div id="statBroadcast" class="text-2xl font-bold">—</div>
+          </div>
+          <div class="bg-gray-800 p-4 rounded">
+            <div class="text-sm text-gray-400">Last Activity</div>
+            <div id="statActivity" class="text-2xl font-bold">—</div>
+          </div>
+        </div>
+
+        <div class="bg-gray-800 p-4 rounded">
+          <h3 class="font-semibold mb-2">Quick Send</h3>
+          <input id="quickUser" class="w-full p-2 mb-2 bg-gray-700 rounded" placeholder="userId (optional)">
+          <input id="quickToken" class="w-full p-2 mb-2 bg-gray-700 rounded" placeholder="token (optional)">
+          <input id="quickTitle" class="w-full p-2 mb-2 bg-gray-700 rounded" placeholder="Title">
+          <textarea id="quickBody" class="w-full p-2 mb-2 bg-gray-700 rounded" placeholder="Message"></textarea>
+          <button onclick="quickSend()" class="px-4 py-2 bg-green-600 rounded">Send</button>
         </div>
       </div>
 
-      <div id="send-panel" class="panel hidden">
-        <div class="bg-gray-800 p-6 rounded-lg space-y-4 max-w-xl">
-          <h3 class="text-xl font-semibold">Send Notification</h3>
-          <input id="targetUser" class="w-full px-3 py-2 bg-gray-700 rounded" placeholder="User ID (optional)" />
-          <input id="targetToken" class="w-full px-3 py-2 bg-gray-700 rounded" placeholder="Token (optional)" />
-          <input id="title" class="w-full px-3 py-2 bg-gray-700 rounded" placeholder="Title" />
-          <textarea id="body" class="w-full px-3 py-2 bg-gray-700 rounded" placeholder="Body"></textarea>
-          <input id="apikey" class="w-full px-3 py-2 bg-gray-700 rounded" placeholder="Admin API Key" />
-          <button onclick="sendNotification()" class="w-full py-2 bg-green-600 hover:bg-green-500 rounded">Send</button>
+      <div id="tokens" class="hidden">
+        <h2 class="text-2xl font-bold mb-4">Tokens</h2>
+        <div class="bg-gray-800 p-4 rounded mb-4">
+          <button onclick="loadTokens()" class="px-3 py-2 bg-blue-600 rounded">Refresh</button>
+        </div>
+        <div class="bg-gray-800 p-4 rounded">
+            <table class="w-full text-left text-sm">
+              <thead>
+                <tr class="text-gray-400">
+                  <th class="py-2">User</th><th>Token</th><th>Platform</th><th>Created</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="tokensTable"></tbody>
+            </table>
         </div>
       </div>
 
-      <div id="broadcast-panel" class="panel hidden">
-        <div class="bg-gray-800 p-6 rounded-lg space-y-4 max-w-xl">
-          <h3 class="text-xl font-semibold">Broadcast Notification</h3>
-          <input id="btitle" class="w-full px-3 py-2 bg-gray-700 rounded" placeholder="Broadcast Title" />
-          <textarea id="bbody" class="w-full px-3 py-2 bg-gray-700 rounded" placeholder="Body"></textarea>
-          <input id="bapikey" class="w-full px-3 py-2 bg-gray-700 rounded" placeholder="Admin API Key" />
-          <button onclick="broadcast()" class="w-full py-2 bg-purple-600 hover:bg-purple-500 rounded">Broadcast</button>
+      <div id="send" class="hidden">
+        <h2 class="text-2xl font-bold mb-4">Send Notification</h2>
+        <div class="bg-gray-800 p-4 rounded">
+          <input id="sendUser" class="w-full p-2 mb-2 bg-gray-700 rounded" placeholder="userId (optional)">
+          <input id="sendToken" class="w-full p-2 mb-2 bg-gray-700 rounded" placeholder="token (optional)">
+          <input id="sendTitle" class="w-full p-2 mb-2 bg-gray-700 rounded" placeholder="Title">
+          <textarea id="sendBody" class="w-full p-2 mb-2 bg-gray-700 rounded" placeholder="Message"></textarea>
+          <button onclick="sendNotification()" class="px-4 py-2 bg-green-600 rounded">Send</button>
         </div>
       </div>
 
-      <div id="tokens-panel" class="panel hidden">
-        <div class="bg-gray-800 p-6 rounded-lg">
-          <h3 class="text-xl font-semibold mb-4">Registered Tokens</h3>
-          <button onclick="loadTokens()" class="mb-4 px-4 py-2 bg-blue-600 rounded hover:bg-blue-500">Refresh</button>
-          <table class="w-full text-left">
-            <thead>
-              <tr>
-                <th class="py-2">User ID</th>
-                <th class="py-2">Token</th>
-                <th class="py-2">Platform</th>
-                <th class="py-2">Created</th>
-              </tr>
-            </thead>
-            <tbody id="tokenTable"></tbody>
-          </table>
+      <div id="broadcast" class="hidden">
+        <h2 class="text-2xl font-bold mb-4">Broadcast</h2>
+        <div class="bg-gray-800 p-4 rounded">
+          <input id="bTitle" class="w-full p-2 mb-2 bg-gray-700 rounded" placeholder="Title">
+          <textarea id="bBody" class="w-full p-2 mb-2 bg-gray-700 rounded" placeholder="Message"></textarea>
+          <button onclick="broadcast()" class="px-4 py-2 bg-purple-600 rounded">Broadcast</button>
         </div>
       </div>
 
-      <div class="mt-10">
-        <h3 class="text-xl font-semibold mb-2">Response</h3>
-        <pre id="response" class="bg-gray-800 p-4 rounded max-w-3xl">Ready</pre>
+      <div id="logs" class="hidden">
+        <h2 class="text-2xl font-bold mb-4">Logs</h2>
+        <div class="bg-gray-800 p-4 rounded">
+          <button onclick="loadLogs()" class="px-3 py-2 bg-blue-600 rounded mb-3">Refresh Logs</button>
+          <pre id="logsPre" class="whitespace-pre-wrap text-sm"></pre>
+        </div>
+      </div>
+
+      <div id="resp" class="mt-6">
+        <pre id="responsePre" class="bg-gray-800 p-4 rounded max-w-3xl">No response yet</pre>
       </div>
     </main>
   </div>
 
-<script>
-function showPanel(id){
-  document.querySelectorAll('.panel').forEach(p=>p.classList.add('hidden'));
-  document.getElementById(id+'-panel').classList.remove('hidden');
-  document.getElementById('panel-title').innerText = id.charAt(0).toUpperCase()+id.slice(1);
-}
-
-async function registerToken(){
-  const userId = regUser.value;
-  const token = regToken.value;
-  const res = await fetch('/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId,token})});
-  response.innerText = JSON.stringify(await res.json(),null,2);
-}
-
-async function sendNotification(){
-  const data = {
-    userId: targetUser.value,
-    token: targetToken.value,
-    title: title.value,
-    body: body.value
-  };
-  const res = await fetch('/send',{ method:'POST', headers:{'Content-Type':'application/json','x-api-key':apikey.value}, body:JSON.stringify(data)});
-  response.innerText = JSON.stringify(await res.json(),null,2);
-}
-
-async function broadcast(){
-  const data = { title: btitle.value, body: bbody.value };
-  const res = await fetch('/broadcast',{ method:'POST', headers:{'Content-Type':'application/json','x-api-key':bapikey.value}, body:JSON.stringify(data)});
-  response.innerText = JSON.stringify(await res.json(),null,2);
-}
-
-async function loadTokens(){
-  const res = await fetch('/tokens?api_key='+prompt('Enter Admin API Key')); 
-  const json = await res.json();
-  response.innerText = JSON.stringify(json,null,2);
-
-  const table = document.getElementById('tokenTable');
-  table.innerHTML = '';
-  json.tokens.forEach(t => {
-    table.innerHTML += `<tr class='border-b border-gray-700'><td class='py-2'>${t.userId}</td><td class='py-2 text-xs'>${t.token}</td><td>${t.platform||'-'}</td><td>${t.created_at}</td></tr>`;
-  });
-}
-</script>
+<script src="app.js"></script>
 </body>
 </html>

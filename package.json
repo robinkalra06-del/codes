@@ -1,5 +1,5 @@
 {
-  "name": "advanced-webpush-backend",
+  "name": "professional-webpush-system",
   "version": "1.0.0",
   "type": "module",
   "main": "server.js",
@@ -13,6 +13,8 @@
     "dotenv": "^16.3.1",
     "firebase-admin": "^11.10.0",
     "sqlite3": "^5.1.6",
-    "sqlite": "^4.1.2"
+    "sqlite": "^4.1.2",
+    "bcrypt": "^5.1.0",
+    "jsonwebtoken": "^9.0.0"
   }
 }
