@@ -1,141 +1,194 @@
 import express from 'express';
-import bodyParser from 'body-parser';
-import fs from 'fs';
-import { GoogleAuth } from 'google-auth-library';
 import path from 'path';
-import cors from 'cors';   // <-- Added CORS
+import cors from 'cors';
+import bodyParser from 'body-parser';
+import dotenv from 'dotenv';
+import sqlite3 from 'sqlite3';
+import { open } from 'sqlite';
+import admin from 'firebase-admin';
+
+dotenv.config();
 
 const app = express();
-
-// ✅ Enable CORS for your frontend domain
-app.use(cors({
-  origin: "https://cheking.pages.dev",
-  methods: ["GET", "POST", "DELETE"],
-  allowedHeaders: ["Content-Type"]
-}));
-
-// Required for preflight CORS on Render
-app.options("*", cors());
-
+app.use(cors({ origin: '*' }));
 app.use(bodyParser.json());
 app.use(express.static(path.join(process.cwd(), 'public')));
 
-const SUB_FILE = 'subscribers.json';
-
-// Ensure subscribers file exists
-if (!fs.existsSync(SUB_FILE)) fs.writeFileSync(SUB_FILE, '[]', 'utf8');
-
-// Helper to read/write subscribers
-function readSubscribers() {
+// Initialize Firebase Admin using SERVICE_ACCOUNT_JSON env var (recommended for Render)
+let serviceAccount;
+if (process.env.SERVICE_ACCOUNT_JSON) {
   try {
-    return JSON.parse(fs.readFileSync(SUB_FILE, 'utf8') || '[]');
-  } catch (e) { return []; }
-}
-function writeSubscribers(list) {
-  fs.writeFileSync(SUB_FILE, JSON.stringify(list, null, 2), 'utf8');
-}
-
-// Load service account placeholder
-let serviceAccount = null;
-const servicePath = 'service-account.json';
-if (fs.existsSync(servicePath)) {
-  serviceAccount = JSON.parse(fs.readFileSync(servicePath, 'utf8'));
-} else {
-  console.warn('[WARN] service-account.json not found. FCM send will fail until you add it.');
-}
-
-// Google Auth setup
-let auth = null;
-function getAuth() {
-  if (!serviceAccount) throw new Error('service-account.json missing');
-  if (!auth) {
-    auth = new GoogleAuth({
-      credentials: serviceAccount,
-      scopes: ['https://www.googleapis.com/auth/firebase.messaging']
+    serviceAccount = JSON.parse(process.env.SERVICE_ACCOUNT_JSON);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
     });
+    console.log('Firebase admin initialized from SERVICE_ACCOUNT_JSON');
+  } catch (e) {
+    console.error('Failed to parse SERVICE_ACCOUNT_JSON:', e.message);
+    process.exit(1);
   }
-  return auth;
+} else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  admin.initializeApp();
+  console.log('Firebase admin initialized using GOOGLE_APPLICATION_CREDENTIALS');
+} else {
+  console.error('No Firebase credentials found. Set SERVICE_ACCOUNT_JSON or GOOGLE_APPLICATION_CREDENTIALS.');
+  process.exit(1);
 }
 
-// Register token
-app.post('/api/register-token', (req, res) => {
+// Open (or create) SQLite DB
+let db;
+(async () => {
+  db = await open({
+    filename: process.env.SQLITE_FILE || './tokens.db',
+    driver: sqlite3.Database
+  });
+  await db.exec(`CREATE TABLE IF NOT EXISTS tokens (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    userId TEXT,
+    token TEXT UNIQUE,
+    platform TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+})();
+
+// Simple auth middleware for protected endpoints (set ADMIN_API_KEY in env)
+function requireApiKey(req, res, next) {
+  const key = req.headers['x-api-key'] || req.query.api_key;
+  if (process.env.ADMIN_API_KEY && key === process.env.ADMIN_API_KEY) return next();
+  return res.status(401).json({ success: false, error: 'Unauthorized - missing/invalid API key' });
+}
+
+// Register a device token for a user
+app.post('/register', async (req, res) => {
+  const { userId, token, platform } = req.body;
+  if (!userId || !token) return res.status(400).json({ success: false, error: 'userId and token required' });
+  try {
+    await db.run('INSERT OR REPLACE INTO tokens (userId, token, platform) VALUES (?, ?, ?)', [userId, token, platform || null]);
+    res.json({ success: true, message: 'Token registered' });
+  } catch (err) {
+    console.error('Register error', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Unregister token
+app.post('/unregister', async (req, res) => {
   const { token } = req.body;
   if (!token) return res.status(400).json({ success: false, error: 'token required' });
-
-  const list = readSubscribers();
-  const exists = list.find(i => i.token === token);
-  if (!exists) {
-    const entry = { token, date: new Date().toISOString() };
-    list.push(entry);
-    writeSubscribers(list);
-  }
-  res.json({ success: true });
-});
-
-// Get subscribers
-app.get('/api/subscribers', (req, res) => {
-  const list = readSubscribers();
-  res.json(list);
-});
-
-// Delete subscriber
-app.delete('/api/subscribers/:token', (req, res) => {
-  const token = req.params.token;
-  let list = readSubscribers();
-  list = list.filter(i => i.token !== token);
-  writeSubscribers(list);
-  res.json({ success: true });
-});
-
-// Send Notifications
-app.post('/api/send', async (req, res) => {
-  const { title, body: messageBody, token } = req.body;
-  if (!title || !messageBody) return res.status(400).json({ success: false, error: 'title and body required' });
-
-  if (!serviceAccount) return res.status(500).json({ success: false, error: 'service-account.json missing on server' });
-
   try {
-    const client = await getAuth().getClient();
-    const projectId = serviceAccount.project_id;
-    const url = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
+    await db.run('DELETE FROM tokens WHERE token = ?', [token]);
+    res.json({ success: true, message: 'Token removed' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
-    const sendOne = async (targetToken) => {
-      const message = {
-        message: {
-          token: targetToken,
-          notification: { title, body: messageBody }
-        }
-      };
-      const response = await client.request({ url, method: 'POST', data: message });
-      return response.data;
+// Send notification to a single user (by userId) or to a single token
+app.post('/send', requireApiKey, async (req, res) => {
+  const { userId, token, title, body, data, android, apns } = req.body;
+  if (!title || !body) return res.status(400).json({ success: false, error: 'title and body required' });
+  let tokens = [];
+  try {
+    if (token) tokens = [token];
+    else if (userId) {
+      const rows = await db.all('SELECT token FROM tokens WHERE userId = ?', [userId]);
+      tokens = rows.map(r => r.token);
+    } else {
+      return res.status(400).json({ success: false, error: 'Provide userId or token' });
+    }
+    if (!tokens.length) return res.status(404).json({ success: false, error: 'No tokens found for target' });
+
+    // build message
+    const message = {
+      notification: { title, body },
+      data: data || {},
     };
 
-    if (token) {
-      const resp = await sendOne(token);
-      return res.json({ success: true, results: [resp] });
+    // use multicast for multiple tokens
+    if (tokens.length === 1) {
+      await admin.messaging().sendToDevice(tokens[0], message, { android: android || {}, apns: apns || {} });
+      return res.json({ success: true, sent: 1 });
     } else {
-      const list = readSubscribers();
-      const results = [];
-      for (const entry of list) {
-        try {
-          const r = await sendOne(entry.token);
-          results.push({ token: entry.token, ok: true, resp: r });
-        } catch (err) {
-          results.push({ token: entry.token, ok: false, error: String(err.message) });
+      const response = await admin.messaging().sendToDevice(tokens, message, { android: android || {}, apns: apns || {} });
+      // response.results can have errors; remove invalid tokens
+      const toRemove = [];
+      response.results.forEach((r, idx) => {
+        if (r.error) {
+          const errMsg = r.error.message || r.error.toString();
+          if (errMsg.includes('registration-token-not-registered') || errMsg.includes('invalid-registration-token')) {
+            toRemove.push(tokens[idx]);
+          }
         }
+      });
+      if (toRemove.length) {
+        const placeholders = toRemove.map(()=>'?').join(',');
+        await db.run(`DELETE FROM tokens WHERE token IN (${placeholders})`, toRemove);
+        console.log('Removed invalid tokens:', toRemove);
       }
-      return res.json({ success: true, results });
+      return res.json({ success: true, response });
     }
-
-  } catch (error) {
-    return res.status(500).json({ success: false, error: String(error.message) });
+  } catch (err) {
+    console.error('Send error', err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// Dashboard
-app.get('/dashboard', (req, res) => {
-  res.sendFile(path.join(process.cwd(), 'public', 'dashboard.html'));
+// Broadcast to all registered tokens (protected)
+app.post('/broadcast', requireApiKey, async (req, res) => {
+  const { title, body, data } = req.body;
+  if (!title || !body) return res.status(400).json({ success: false, error: 'title and body required' });
+  try {
+    const rows = await db.all('SELECT token FROM tokens');
+    const tokens = rows.map(r => r.token);
+    if (!tokens.length) return res.status(404).json({ success: false, error: 'No tokens registered' });
+
+    // chunk tokens by 500 (FCM limit)
+    const chunkSize = 500;
+    let sent = 0;
+    for (let i = 0; i < tokens.length; i += chunkSize) {
+      const chunk = tokens.slice(i, i + chunkSize);
+      const response = await admin.messaging().sendToDevice(chunk, { notification: { title, body }, data: data || {} });
+      sent += chunk.length;
+      // cleanup invalid tokens
+      const toRemove = [];
+      response.results.forEach((r, idx) => {
+        if (r.error) {
+          const errMsg = r.error.message || r.error.toString();
+          if (errMsg.includes('registration-token-not-registered') || errMsg.includes('invalid-registration-token')) {
+            toRemove.push(chunk[idx]);
+          }
+        }
+      });
+      if (toRemove.length) {
+        const placeholders = toRemove.map(()=>'?').join(',');
+        await db.run(`DELETE FROM tokens WHERE token IN (${placeholders})`, toRemove);
+        console.log('Removed invalid tokens:', toRemove);
+      }
+    }
+    res.json({ success: true, sent });
+  } catch (err) {
+    console.error('Broadcast error', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// List tokens (protected)
+app.get('/tokens', requireApiKey, async (req, res) => {
+  try {
+    const rows = await db.all('SELECT id, userId, token, platform, created_at FROM tokens ORDER BY created_at DESC LIMIT 1000');
+    res.json({ success: true, tokens: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Health check
+app.get('/health', (req, res) => res.json({ success: true, time: new Date() }));
+
+// Serve simple dashboard for testing (optional)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(process.cwd(), 'public', 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, ()=> console.log(`Advanced WebPush backend running on port ${PORT}`));

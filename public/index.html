@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Advanced WebPush Backend - Test Panel</title>
+  <style>
+    body{font-family:Arial;background:#0b1220;color:#e6eef8;padding:20px}
+    .card{background:#0f1724;padding:20px;border-radius:8px;max-width:700px}
+    input,textarea,button{width:100%;padding:10px;margin-top:8px;border-radius:6px;border:1px solid #213041;background:#081226;color:#e6eef8}
+    button{cursor:pointer;background:#06f;color:white}
+    pre{background:#061126;padding:10px;border-radius:6px;overflow:auto}
+  </style>
+</head>
+<body>
+  <h1>Advanced WebPush Backend — Test Panel</h1>
+  <div class="card">
+    <h3>Register Token</h3>
+    <input id="regUser" placeholder="userId (e.g. user_123)">
+    <input id="regToken" placeholder="FCM device token">
+    <button onclick="registerToken()">Register</button>
+
+    <h3>Send Notification (Protected - api_key header)</h3>
+    <input id="targetUser" placeholder="userId (or leave blank to use token)">
+    <input id="targetToken" placeholder="token (optional)">
+    <input id="title" placeholder="Title">
+    <textarea id="body" placeholder="Message body"></textarea>
+    <input id="apikey" placeholder="Admin API Key (set in env)">
+
+    <button onclick="send()">Send</button>
+
+    <h3>Broadcast</h3>
+    <input id="btitle" placeholder="Broadcast Title">
+    <textarea id="bbody" placeholder="Broadcast Body"></textarea>
+    <input id="bapikey" placeholder="Admin API Key (set in env)">
+    <button onclick="broadcast()">Broadcast</button>
+
+    <h3>Responses</h3>
+    <pre id="out">Ready</pre>
+  </div>
+
+<script>
+async function registerToken(){
+  const userId=document.getElementById('regUser').value;
+  const token=document.getElementById('regToken').value;
+  const res=await fetch('/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId,token})});
+  const j=await res.json(); document.getElementById('out').innerText=JSON.stringify(j,null,2);
+}
+
+async function send(){
+  const userId=document.getElementById('targetUser').value;
+  const token=document.getElementById('targetToken').value;
+  const title=document.getElementById('title').value;
+  const body=document.getElementById('body').value;
+  const apikey=document.getElementById('apikey').value;
+  const res=await fetch('/send',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apikey},body:JSON.stringify({userId,token,title,body})});
+  const j=await res.json(); document.getElementById('out').innerText=JSON.stringify(j,null,2);
+}
+
+async function broadcast(){
+  const title=document.getElementById('btitle').value;
+  const body=document.getElementById('bbody').value;
+  const apikey=document.getElementById('bapikey').value;
+  const res=await fetch('/broadcast',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apikey},body:JSON.stringify({title,body})});
+  const j=await res.json(); document.getElementById('out').innerText=JSON.stringify(j,null,2);
+}
+</script>
+</body>
+</html>
