@@ -1,67 +1,126 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Advanced WebPush Backend - Test Panel</title>
-  <style>
-    body{font-family:Arial;background:#0b1220;color:#e6eef8;padding:20px}
-    .card{background:#0f1724;padding:20px;border-radius:8px;max-width:700px}
-    input,textarea,button{width:100%;padding:10px;margin-top:8px;border-radius:6px;border:1px solid #213041;background:#081226;color:#e6eef8}
-    button{cursor:pointer;background:#06f;color:white}
-    pre{background:#061126;padding:10px;border-radius:6px;overflow:auto}
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebPush Admin Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
 </head>
-<body>
-  <h1>Advanced WebPush Backend — Test Panel</h1>
-  <div class="card">
-    <h3>Register Token</h3>
-    <input id="regUser" placeholder="userId (e.g. user_123)">
-    <input id="regToken" placeholder="FCM device token">
-    <button onclick="registerToken()">Register</button>
+<body class="bg-gray-900 text-gray-100">
+  <div class="flex min-h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-gray-800 p-6 space-y-6">
+      <h1 class="text-2xl font-bold">WebPush Admin</h1>
+      <nav class="space-y-4">
+        <button onclick="showPanel('register')" class="w-full text-left py-2 px-3 bg-gray-700 hover:bg-gray-600 rounded">Register Token</button>
+        <button onclick="showPanel('send')" class="w-full text-left py-2 px-3 bg-gray-700 hover:bg-gray-600 rounded">Send Notification</button>
+        <button onclick="showPanel('broadcast')" class="w-full text-left py-2 px-3 bg-gray-700 hover:bg-gray-600 rounded">Broadcast</button>
+        <button onclick="showPanel('tokens')" class="w-full text-left py-2 px-3 bg-gray-700 hover:bg-gray-600 rounded">All Tokens</button>
+      </nav>
+    </aside>
 
-    <h3>Send Notification (Protected - api_key header)</h3>
-    <input id="targetUser" placeholder="userId (or leave blank to use token)">
-    <input id="targetToken" placeholder="token (optional)">
-    <input id="title" placeholder="Title">
-    <textarea id="body" placeholder="Message body"></textarea>
-    <input id="apikey" placeholder="Admin API Key (set in env)">
+    <!-- Main Content -->
+    <main class="flex-1 p-10">
+      <h2 id="panel-title" class="text-3xl font-bold mb-6">Dashboard</h2>
 
-    <button onclick="send()">Send</button>
+      <!-- Panels -->
+      <div id="register-panel" class="panel hidden">
+        <div class="bg-gray-800 p-6 rounded-lg space-y-4 max-w-xl">
+          <h3 class="text-xl font-semibold">Register Token</h3>
+          <input id="regUser" class="w-full px-3 py-2 bg-gray-700 rounded" placeholder="User ID" />
+          <input id="regToken" class="w-full px-3 py-2 bg-gray-700 rounded" placeholder="FCM Token" />
+          <button onclick="registerToken()" class="w-full py-2 bg-blue-600 hover:bg-blue-500 rounded">Register</button>
+        </div>
+      </div>
 
-    <h3>Broadcast</h3>
-    <input id="btitle" placeholder="Broadcast Title">
-    <textarea id="bbody" placeholder="Broadcast Body"></textarea>
-    <input id="bapikey" placeholder="Admin API Key (set in env)">
-    <button onclick="broadcast()">Broadcast</button>
+      <div id="send-panel" class="panel hidden">
+        <div class="bg-gray-800 p-6 rounded-lg space-y-4 max-w-xl">
+          <h3 class="text-xl font-semibold">Send Notification</h3>
+          <input id="targetUser" class="w-full px-3 py-2 bg-gray-700 rounded" placeholder="User ID (optional)" />
+          <input id="targetToken" class="w-full px-3 py-2 bg-gray-700 rounded" placeholder="Token (optional)" />
+          <input id="title" class="w-full px-3 py-2 bg-gray-700 rounded" placeholder="Title" />
+          <textarea id="body" class="w-full px-3 py-2 bg-gray-700 rounded" placeholder="Body"></textarea>
+          <input id="apikey" class="w-full px-3 py-2 bg-gray-700 rounded" placeholder="Admin API Key" />
+          <button onclick="sendNotification()" class="w-full py-2 bg-green-600 hover:bg-green-500 rounded">Send</button>
+        </div>
+      </div>
 
-    <h3>Responses</h3>
-    <pre id="out">Ready</pre>
+      <div id="broadcast-panel" class="panel hidden">
+        <div class="bg-gray-800 p-6 rounded-lg space-y-4 max-w-xl">
+          <h3 class="text-xl font-semibold">Broadcast Notification</h3>
+          <input id="btitle" class="w-full px-3 py-2 bg-gray-700 rounded" placeholder="Broadcast Title" />
+          <textarea id="bbody" class="w-full px-3 py-2 bg-gray-700 rounded" placeholder="Body"></textarea>
+          <input id="bapikey" class="w-full px-3 py-2 bg-gray-700 rounded" placeholder="Admin API Key" />
+          <button onclick="broadcast()" class="w-full py-2 bg-purple-600 hover:bg-purple-500 rounded">Broadcast</button>
+        </div>
+      </div>
+
+      <div id="tokens-panel" class="panel hidden">
+        <div class="bg-gray-800 p-6 rounded-lg">
+          <h3 class="text-xl font-semibold mb-4">Registered Tokens</h3>
+          <button onclick="loadTokens()" class="mb-4 px-4 py-2 bg-blue-600 rounded hover:bg-blue-500">Refresh</button>
+          <table class="w-full text-left">
+            <thead>
+              <tr>
+                <th class="py-2">User ID</th>
+                <th class="py-2">Token</th>
+                <th class="py-2">Platform</th>
+                <th class="py-2">Created</th>
+              </tr>
+            </thead>
+            <tbody id="tokenTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="mt-10">
+        <h3 class="text-xl font-semibold mb-2">Response</h3>
+        <pre id="response" class="bg-gray-800 p-4 rounded max-w-3xl">Ready</pre>
+      </div>
+    </main>
   </div>
 
 <script>
-async function registerToken(){
-  const userId=document.getElementById('regUser').value;
-  const token=document.getElementById('regToken').value;
-  const res=await fetch('/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId,token})});
-  const j=await res.json(); document.getElementById('out').innerText=JSON.stringify(j,null,2);
+function showPanel(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.add('hidden'));
+  document.getElementById(id+'-panel').classList.remove('hidden');
+  document.getElementById('panel-title').innerText = id.charAt(0).toUpperCase()+id.slice(1);
 }
 
-async function send(){
-  const userId=document.getElementById('targetUser').value;
-  const token=document.getElementById('targetToken').value;
-  const title=document.getElementById('title').value;
-  const body=document.getElementById('body').value;
-  const apikey=document.getElementById('apikey').value;
-  const res=await fetch('/send',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apikey},body:JSON.stringify({userId,token,title,body})});
-  const j=await res.json(); document.getElementById('out').innerText=JSON.stringify(j,null,2);
+async function registerToken(){
+  const userId = regUser.value;
+  const token = regToken.value;
+  const res = await fetch('/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId,token})});
+  response.innerText = JSON.stringify(await res.json(),null,2);
+}
+
+async function sendNotification(){
+  const data = {
+    userId: targetUser.value,
+    token: targetToken.value,
+    title: title.value,
+    body: body.value
+  };
+  const res = await fetch('/send',{ method:'POST', headers:{'Content-Type':'application/json','x-api-key':apikey.value}, body:JSON.stringify(data)});
+  response.innerText = JSON.stringify(await res.json(),null,2);
 }
 
 async function broadcast(){
-  const title=document.getElementById('btitle').value;
-  const body=document.getElementById('bbody').value;
-  const apikey=document.getElementById('bapikey').value;
-  const res=await fetch('/broadcast',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apikey},body:JSON.stringify({title,body})});
-  const j=await res.json(); document.getElementById('out').innerText=JSON.stringify(j,null,2);
+  const data = { title: btitle.value, body: bbody.value };
+  const res = await fetch('/broadcast',{ method:'POST', headers:{'Content-Type':'application/json','x-api-key':bapikey.value}, body:JSON.stringify(data)});
+  response.innerText = JSON.stringify(await res.json(),null,2);
+}
+
+async function loadTokens(){
+  const res = await fetch('/tokens?api_key='+prompt('Enter Admin API Key')); 
+  const json = await res.json();
+  response.innerText = JSON.stringify(json,null,2);
+
+  const table = document.getElementById('tokenTable');
+  table.innerHTML = '';
+  json.tokens.forEach(t => {
+    table.innerHTML += `<tr class='border-b border-gray-700'><td class='py-2'>${t.userId}</td><td class='py-2 text-xs'>${t.token}</td><td>${t.platform||'-'}</td><td>${t.created_at}</td></tr>`;
+  });
 }
 </script>
 </body>
