@@ -16,24 +16,44 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(bodyParser.json());
 app.use(express.static(path.join(process.cwd(), 'public')));
 
-// --- Firebase Admin init ---
-if (process.env.SERVICE_ACCOUNT_JSON) {
+// --- Firebase Admin init (supports base64 env to avoid newline issues) ---
+let initializedFirebase = false;
+
+if (process.env.SERVICE_ACCOUNT_BASE64) {
   try {
+    const jsonStr = Buffer.from(process.env.SERVICE_ACCOUNT_BASE64, 'base64').toString('utf8');
+    const svc = JSON.parse(jsonStr);
+    admin.initializeApp({
+      credential: admin.credential.cert(svc)
+    });
+    initializedFirebase = true;
+    console.log('Firebase Admin initialized from SERVICE_ACCOUNT_BASE64');
+  } catch (e) {
+    console.error('Failed to init Firebase from SERVICE_ACCOUNT_BASE64:', e.message);
+    process.exit(1);
+  }
+} else if (process.env.SERVICE_ACCOUNT_JSON) {
+  try {
+    // fallback (if you have raw JSON in env)
     const svc = JSON.parse(process.env.SERVICE_ACCOUNT_JSON);
     admin.initializeApp({
       credential: admin.credential.cert(svc)
     });
+    initializedFirebase = true;
     console.log('Firebase Admin initialized from SERVICE_ACCOUNT_JSON');
   } catch (e) {
     console.error('Failed to parse SERVICE_ACCOUNT_JSON', e.message);
     process.exit(1);
   }
 } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  // when you've uploaded the JSON file into repo (not recommended for secrets)
   admin.initializeApp();
+  initializedFirebase = true;
   console.log('Firebase Admin initialized via GOOGLE_APPLICATION_CREDENTIALS');
 } else {
-  console.warn('No Firebase credentials provided. Set SERVICE_ACCOUNT_JSON or GOOGLE_APPLICATION_CREDENTIALS');
+  console.warn('No Firebase credentials provided. Set SERVICE_ACCOUNT_BASE64 or SERVICE_ACCOUNT_JSON or GOOGLE_APPLICATION_CREDENTIALS');
 }
+
 
 // --- SQLite DB ---
 let db;
