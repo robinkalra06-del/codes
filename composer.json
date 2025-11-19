@@ -1,0 +1,12 @@
+{
+    "name": "rajatmann/webpush-backend",
+    "type": "composer-plugin",
+    "autoload": {
+        "psr-4": {
+            "Rajatmann\\WebpushBackend\\": "src/"
+        }
+    },
+    "require": {
+        "minishlink/web-push": "^9.0"
+    }
+}
