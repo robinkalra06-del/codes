@@ -1,0 +1,11 @@
+Flask
+flask_sqlalchemy
+flask_login
+flask_migrate
+gunicorn
+flask_cors
+pywebpush
+cryptography
+requests
+python-dotenv
+Werkzeug

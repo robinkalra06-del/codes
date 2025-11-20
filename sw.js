@@ -1,20 +1,14 @@
-// public/sw.js
 self.addEventListener('push', function(event) {
-  let data = { title: 'Notification', body: '' };
-  try {
-    data = event.data.json();
-  } catch (e) {
-    data.body = event.data ? event.data.text() : '';
+  let data = {};
+  if (event.data) {
+    try { data = event.data.json(); } catch(e) { data = { title: 'New', body: event.data.text() }; }
   }
+  const title = data.title || 'New Notification';
   const options = {
     body: data.body || '',
-    icon: data.icon || undefined,
-    data: { timestamp: data.timestamp || Date.now() }
+    icon: data.icon || '/static/default-icon.png',
+    image: data.image || undefined,
+    data: { url: data.url }
   };
-  event.waitUntil(self.registration.showNotification(data.title, options));
-});
-
-self.addEventListener('notificationclick', function(event) {
-  event.notification.close();
-  event.waitUntil(clients.openWindow('/'));
+  event.waitUntil(self.registration.showNotification(title, options));
 });

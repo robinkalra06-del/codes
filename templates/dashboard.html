@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>Your Sites</h3>
+<table class="table">
+  <thead><tr><th>Name</th><th>Origin</th><th>Subscribers</th><th>Actions</th></tr></thead>
+  <tbody>
+    {% for s in sites %}
+    <tr>
+      <td>{{ s.name }}</td>
+      <td>{{ s.origin }}</td>
+      <td>{{ s.subscriptions|length }}</td>
+      <td>
+        <a class="btn btn-sm btn-outline-primary" href="/sites/{{ s.id }}">View</a>
+        <a class="btn btn-sm btn-success" href="/sites/{{ s.id }}/send">Send</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<hr>
+<h4>Create new site</h4>
+<form method="post" action="/sites/create">
+  <div class="row">
+    <div class="col-md-4"><input name="name" class="form-control" placeholder="Site name" required></div>
+    <div class="col-md-5"><input name="origin" class="form-control" placeholder="https://example.com" required></div>
+    <div class="col-md-3"><button class="btn btn-primary">Create</button></div>
+  </div>
+</form>
+{% endblock %}

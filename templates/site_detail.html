@@ -1,0 +1,53 @@
+<h3>{{ site.name }} <small class="text-muted">({{ site.origin }})</small></h3>
+<p>API key: <code>{{ site.api_key }}</code></p>
+<p>VAPID Public Key (for client): <code>{{ vapid_public }}</code></p>
+
+<!-- Group counts -->
+<div class="mb-3">
+  <strong>Subscriber groups:</strong>
+  <ul>
+    {% for k,v in group_counts.items() %}
+      <li>{{ k|capitalize }}: {{ v }}</li>
+    {% endfor %}
+  </ul>
+</div>
+<a href="{{ url_for('download_sw', site_id=site.id) }}" class="btn btn-primary">
+    Download Service Worker (sw.js)
+</a>
+
+<!-- Integration snippet (unchanged except show vapid_public) -->
+...
+<pre style="background:#f8f9fa;padding:12px;border-radius:6px;white-space:pre-wrap;">&lt;script&gt;/* Paste before &lt;/body&gt; */
+(function(){
+  const API_KEY = "{{ site.api_key }}";
+  const VAPID_PUBLIC = "{{ vapid_public }}";
+  if ('serviceWorker' in navigator && 'PushManager' in window) {
+    navigator.serviceWorker.register('/sw.js').then(async function(reg){
+      const existing = await reg.pushManager.getSubscription();
+      if (existing) return sendSubscription(existing);
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC)
+      });
+      sendSubscription(sub);
+    }).catch(console.error);
+
+    function sendSubscription(subscription){
+      fetch('{{ request.url_root[:-1] }}' + '/api/subscribe',{
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ api_key: API_KEY, subscription: subscription })
+      }).then(r=>r.json()).then(console.log).catch(console.error);
+    }
+
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+      return outputArray;
+    }
+  }
+})();
+&lt;/script&gt;</pre>

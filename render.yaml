@@ -1,8 +1,0 @@
-services:
-  - type: web
-    name: php-webpush-backend
-    env: docker
-    plan: free
-    branch: main
-    dockerfilePath: ./Dockerfile
-    autoDeploy: false
