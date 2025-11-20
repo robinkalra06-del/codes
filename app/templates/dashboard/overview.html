@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Overview</h2>
+<div class="row">
+  <div class="col-md-4">
+    <div class="card p-3">
+      <h5>Sites</h5>
+      <ul>
+      {% for s in stats %}
+        <li>
+          <strong>{{ s.site.name }}</strong> ({{ s.site.domain }})<br>
+          Subscribers: {{ s.subscribers }} | Notifications sent: {{ s.sent }}<br>
+          <a class="btn btn-sm btn-outline-primary mt-1" href="/dashboard/subscribers?site_id={{ s.site.id }}">Subscribers</a>
+          <a class="btn btn-sm btn-outline-success mt-1" href="/dashboard/send?site_id={{ s.site.id }}">Send</a>
+          <a class="btn btn-sm btn-outline-secondary mt-1" href="/pushclient/{{ s.site.site_key }}.js" target="_blank">Push Client</a>
+        </li>
+      {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
