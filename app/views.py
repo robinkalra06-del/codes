@@ -34,7 +34,7 @@ def reg_post(request: Request, email: str = Form(...), password: str = Form(...)
     db.commit()
     # create default site placeholder
     site_key = gen_site_key()
-    priv, pub = generate_vapid_keys()
+    priv, pub = get_vapid_keys()
     site = Site(
         owner_id=user.id,
         name=f"{email} site",

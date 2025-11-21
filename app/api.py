@@ -5,7 +5,7 @@ from app.db import SessionLocal
 from app.models import Site, Subscription, NotificationLog
 from app.schemas import SubscribeIn
 from app.utils import get_current_user
-from app.vapid import generate_vapid_keys, gen_site_key
+from app.vapid import get_vapid_keys, gen_site_key
 from app.config import settings
 import json
 from pywebpush import webpush, WebPushException

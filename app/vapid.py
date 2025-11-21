@@ -5,7 +5,7 @@ import secrets
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 
-def generate_vapid_keys_pair():
+def get_vapid_keys():
     """
     Generates a fresh VAPID private/public key pair in PEM format.
     """
