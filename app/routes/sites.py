@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 from app.db import SessionLocal
 from app.models import Site
 from app.utils import get_current_user
+from app.vapid import generate_vapid_keys, gen_site_key
+
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -34,7 +36,7 @@ def sites_create(request: Request, name: str = Form(...), domain: str = Form(...
     site_key = gen_site_key()
 
     # FIXED: Use pywebpush API
-    priv, pub = generate_vapid_keys_pair()
+    priv, pub = generate_vapid_keys()
 
     site = Site(
         owner_id=user.id,
