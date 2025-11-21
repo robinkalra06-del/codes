@@ -2,7 +2,7 @@
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-
+from app.routes import router as dashboard_router
 from app.config import settings
 from app.views import router as views_router, init_db
 from app.api import router as api_router
@@ -72,8 +72,8 @@ async def dynamic_cors_middleware(request: Request, call_next):
 # -------------------------------------------------
 # Routers
 # -------------------------------------------------
-app.include_router(views_router)                  # dashboard (HTML pages)
-app.include_router(api_router, prefix="/api")     # backend API routes
+app.include_router(views_router)               
+app.include_router(api_router, prefix="/api")   
 
 
 # -------------------------------------------------
