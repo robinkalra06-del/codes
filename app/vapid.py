@@ -1,18 +1,17 @@
 # app/vapid.py
-from py_vapid import Vapid
+from py_vapid import Vapid02
 import secrets
 
 def generate_vapid_keys():
     """
-    Generate VAPID keys using py-vapid (Render-safe).
-    Compatible with versions that return EllipticCurvePrivateKey objects.
+    Final working version for your installed py-vapid (Vapid02 with PEM export).
     """
-    v = Vapid()
-    v.generate_keys()
+    v = Vapid02()
+    v.generate_keys()  # MUST generate keys before exporting
 
-    # these RETURN PEM bytes → safe to decode
-    priv = v.export_private_key().decode()
-    pub = v.export_public_key().decode()
+    # These two methods EXIST in all Vapid02 releases
+    priv = v.private_key_pem().decode()
+    pub = v.public_key_pem().decode()
 
     return priv, pub
 
