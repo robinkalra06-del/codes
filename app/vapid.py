@@ -1,17 +1,19 @@
 # app/vapid.py
-from py_vapid import Vapid02
+from py_vapid import Vapid
 import secrets
 
 def generate_vapid_keys():
     """
-    Final working version for your installed py-vapid (Vapid02 with PEM export).
+    Universal VAPID key generation compatible with ALL py-vapid versions.
     """
-    v = Vapid02()
-    v.generate_keys()  # MUST generate keys before exporting
+    v = Vapid()
 
-    # These two methods EXIST in all Vapid02 releases
-    priv = v.private_key_pem().decode()
-    pub = v.public_key_pem().decode()
+    # This method exists in ALL VERSIONS
+    v.create_keys()
+
+    # These methods ALWAYS return PEM bytes
+    priv = v.get_private_key().decode()
+    pub = v.get_public_key().decode()
 
     return priv, pub
 
