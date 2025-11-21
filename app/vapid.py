@@ -1,27 +1,28 @@
-from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives import serialization
+# app/vapid.py
+
+from py_vapid import Vapid
 import secrets
 
 
+# Used by your old routes
+def generate_vapid_keys():
+    """
+    Returns (private_key_pem, public_key_pem)
+    """
+    v = Vapid()
+    priv = v.private_key_pem().decode()
+    pub = v.public_key_pem().decode()
+    return priv, pub
+
+
+# Used by your new routes
 def generate_vapid_keys_pair():
-    # Generate EC (P-256) private key
-    private_key = ec.generate_private_key(ec.SECP256R1())
-
-    # Export private key PEM
-    private_pem = private_key.private_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption()
-    ).decode()
-
-    # Export public key PEM
-    public_pem = private_key.public_key().public_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo
-    ).decode()
-
-    return private_pem, public_pem
+    """
+    Alias wrapper for backwards compatibility
+    """
+    return generate_vapid_keys()
 
 
+# Generate random site key
 def gen_site_key():
     return secrets.token_urlsafe(32)

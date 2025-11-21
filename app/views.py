@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from .db import SessionLocal, engine
 from .models import Base, User, Site
 from .utils import hash_password, verify_password, create_jwt
-from .vapid import generate_vapid_keys, gen_site_key
+from app.vapid import generate_vapid_keys_pair, gen_site_key
 from .config import settings
 
 router = APIRouter()
