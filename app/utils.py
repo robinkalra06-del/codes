@@ -7,7 +7,7 @@ from .config import settings
 from .db import SessionLocal
 from .models import User
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 def hash_password(password: str) -> str:
     # bcrypt has 72 bytes limit; ensure short or truncate externally if needed
