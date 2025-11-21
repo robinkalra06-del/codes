@@ -1,12 +1,12 @@
 # app/routes/sites.py
-from fastapi import APIRouter, Request, Form, Depends
+from fastapi import APIRouter, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from app.db import SessionLocal
 from app.models import Site
 from app.utils import get_current_user
-from app.vapid import generate_vapid_keys, gen_site_key
+from app.vapid import generate_vapid_keys_pair, gen_site_key
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -33,8 +33,18 @@ def sites_new(request: Request):
 def sites_create(request: Request, name: str = Form(...), domain: str = Form(...), db: Session = Depends(get_db)):
     user = get_current_user(request)
     site_key = gen_site_key()
-    priv, pub = generate_vapid_keys()
-    site = Site(owner_id=user.id, name=name, domain=domain, site_key=site_key, vapid_public=pub, vapid_private=priv)
+
+    # FIXED: Use pywebpush API
+    priv, pub = generate_vapid_keys_pair()
+
+    site = Site(
+        owner_id=user.id,
+        name=name,
+        domain=domain,
+        site_key=site_key,
+        vapid_public=pub,
+        vapid_private=priv
+    )
     db.add(site)
     db.commit()
     return RedirectResponse(url=f"/dashboard/sites/{site_key}/integration", status_code=302)
