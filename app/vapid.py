@@ -1,30 +1,13 @@
 # app/vapid.py
-from py_vapid import Vapid02
+from vapid import Vapid
 import secrets
-from cryptography.hazmat.primitives import serialization
-
 
 def generate_vapid_keys():
-    """
-    Final universal solution for Vapid02.
-    Works with versions that expose raw cryptography keys but
-    do not provide any PEM export helpers.
-    """
-    v = Vapid02()
-    v.generate_keys()  # Generates raw cryptography EC keys
+    vapid = Vapid()
+    keys = vapid.create_keys()  # returns dict
 
-    # Export private key to PEM
-    priv = v.private_key.private_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption()
-    ).decode()
-
-    # Export public key to PEM
-    pub = v.public_key.public_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo
-    ).decode()
+    priv = keys["privateKey"]
+    pub = keys["publicKey"]
 
     return priv, pub
 
