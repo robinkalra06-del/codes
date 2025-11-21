@@ -1,91 +1,48 @@
-from fastapi import APIRouter, Depends, Request, Form, HTTPException
+# app/routes/sites.py
+from fastapi import APIRouter, Request, Form, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from app.database import get_db
+from app.db import SessionLocal
 from app.models import Site
-from app.auth import get_current_user
-from app.utils.vapid import generate_vapid
-from app.views import templates
-import secrets
+from app.utils import get_current_user
+from app.vapid import generate_vapid_keys, gen_site_key
 
 router = APIRouter()
+templates = Jinja2Templates(directory="app/templates")
 
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-# ------------------------------
-# LIST WEBSITES
-# ------------------------------
 @router.get("/dashboard/sites", response_class=HTMLResponse)
-def sites_list(
-    request: Request,
-    db: Session = Depends(get_db),
-    user=Depends(get_current_user)
-):
-    sites = db.query(Site).filter_by(owner_id=user.id).all()
-    return templates.TemplateResponse(
-        "dashboard/sites_list.html",
-        {"request": request, "sites": sites}
-    )
+def sites_list(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request)
+    sites = db.query(Site).filter(Site.owner_id == user.id).all()
+    return templates.TemplateResponse("dashboard/sites_list.html", {"request": request, "sites": sites})
 
-
-# ------------------------------
-# NEW WEBSITE FORM
-# ------------------------------
 @router.get("/dashboard/sites/new", response_class=HTMLResponse)
 def sites_new(request: Request):
-    return templates.TemplateResponse(
-        "dashboard/site_new.html",
-        {"request": request}
-    )
+    user = get_current_user(request)
+    return templates.TemplateResponse("dashboard/site_new.html", {"request": request})
 
-
-# ------------------------------
-# CREATE WEBSITE
-# ------------------------------
 @router.post("/dashboard/sites")
-def sites_create(
-    request: Request,
-    name: str = Form(...),
-    domain: str = Form(...),
-    db: Session = Depends(get_db),
-    user=Depends(get_current_user)
-):
-    # generate keys
-    site_key = secrets.token_urlsafe(32)
-    priv, pub = generate_vapid()
-
-    new_site = Site(
-        owner_id=user.id,
-        name=name,
-        domain=domain,
-        site_key=site_key,
-        vapid_public=pub,
-        vapid_private=priv
-    )
-    db.add(new_site)
+def sites_create(request: Request, name: str = Form(...), domain: str = Form(...), db: Session = Depends(get_db)):
+    user = get_current_user(request)
+    site_key = gen_site_key()
+    priv, pub = generate_vapid_keys()
+    site = Site(owner_id=user.id, name=name, domain=domain, site_key=site_key, vapid_public=pub, vapid_private=priv)
+    db.add(site)
     db.commit()
+    return RedirectResponse(url=f"/dashboard/sites/{site_key}/integration", status_code=302)
 
-    return RedirectResponse(
-        f"/dashboard/sites/{site_key}/integration",
-        status_code=302
-    )
-
-
-# ------------------------------
-# INTEGRATION PAGE
-# ------------------------------
 @router.get("/dashboard/sites/{site_key}/integration", response_class=HTMLResponse)
-def site_integration(
-    site_key: str,
-    request: Request,
-    db: Session = Depends(get_db),
-    user=Depends(get_current_user)
-):
-    site = db.query(Site).filter_by(site_key=site_key, owner_id=user.id).first()
-
+def site_integration(site_key: str, request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request)
+    site = db.query(Site).filter(Site.site_key == site_key, Site.owner_id == user.id).first()
     if not site:
-        raise HTTPException(404, "Site not found")
-
-    return templates.TemplateResponse(
-        "dashboard/site_integration.html",
-        {"request": request, "site": site}
-    )
+        raise HTTPException(status_code=404)
+    return templates.TemplateResponse("dashboard/site_integration.html", {"request": request, "site": site})

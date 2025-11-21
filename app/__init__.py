@@ -1,1 +1,1 @@
-__all__ = ['main']
+# app/__init__.py

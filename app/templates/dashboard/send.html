@@ -1,13 +1,19 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>Send Notification</h2>
-<form method="post" action="/dashboard/send" enctype="multipart/form-data">
-  <input type="hidden" name="site_id" value="{{ site.id }}"/>
-  <div class="mb-3"><label>Title</label><input class="form-control" name="title"/></div>
-  <div class="mb-3"><label>Message</label><textarea class="form-control" name="message"></textarea></div>
-  <div class="mb-3"><label>Target URL</label><input class="form-control" name="url"/></div>
-  <div class="mb-3"><label>Icon (png/jpg)</label><input type="file" name="icon"/></div>
-  <div class="mb-3"><label>Big image</label><input type="file" name="image"/></div>
-  <button class="btn btn-success">Send</button>
+<form method="post" enctype="multipart/form-data" action="/dashboard/send">
+  <div class="mb-3">
+    <label>Site</label>
+    <select name="site_id" class="form-control">
+      {% for s in sites %}
+        <option value="{{ s.id }}">{{ s.name }} — {{ s.domain }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="mb-3"><label>Title</label><input name="title" class="form-control"></div>
+  <div class="mb-3"><label>Message</label><textarea name="message" class="form-control"></textarea></div>
+  <div class="mb-3"><label>Icon (PNG/JPG)</label><input type="file" name="icon" class="form-control"></div>
+  <div class="mb-3"><label>Image (Optional)</label><input type="file" name="image" class="form-control"></div>
+  <button class="btn btn-primary">Send</button>
 </form>
 {% endblock %}

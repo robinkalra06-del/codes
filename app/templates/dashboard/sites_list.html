@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Sites</h2>
+<a class="btn btn-primary mb-3" href="/dashboard/sites/new">Add New</a>
+<table class="table">
+  <thead><tr><th>Name</th><th>Domain</th><th>Key</th><th></th></tr></thead>
+  <tbody>
+    {% for s in sites %}
+      <tr>
+        <td>{{ s.name }}</td>
+        <td>{{ s.domain }}</td>
+        <td>{{ s.site_key }}</td>
+        <td><a class="btn btn-sm btn-outline-secondary" href="/dashboard/sites/{{ s.site_key }}/integration">Integration</a></td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -2,11 +2,14 @@
 {% block content %}
 <h2>Subscribers for {{ site.name }}</h2>
 <table class="table">
-<thead><tr><th>ID</th><th>Endpoint</th><th>Joined</th></tr></thead>
-<tbody>
-{% for sub in subscriptions %}
-<tr><td>{{ sub.id }}</td><td style="word-break:break-all">{{ sub.endpoint }}</td><td>{{ sub.created_at }}</td></tr>
-{% endfor %}
-</tbody>
+  <thead><tr><th>Endpoint</th><th>Created At</th></tr></thead>
+  <tbody>
+    {% for s in subscriptions %}
+      <tr>
+        <td style="word-break:break-all">{{ s.endpoint }}</td>
+        <td>{{ s.created_at }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
 </table>
 {% endblock %}

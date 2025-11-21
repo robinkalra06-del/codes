@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Integration — {{ site.name }}</h2>
+
+<p>Add this script tag to your website (replace YOUR_RENDER_DOMAIN):</p>
+<pre>&lt;script src="{{ request.url.scheme }}://{{ request.url.hostname }}/pushclient/{{ site.site_key }}.js"&gt;&lt;/script&gt;</pre>
+
+<p>Also place the service-worker.js file at your site root (or use our hosted service worker by copying):</p>
+<pre>/service-worker.js</pre>
+
+<h4>VAPID Public Key</h4>
+<pre>{{ site.vapid_public }}</pre>
+{% endblock %}

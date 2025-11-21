@@ -1,84 +1,57 @@
-# main.py
+# app/main.py
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import router as dashboard_router
 from app.config import settings
 from app.views import router as views_router, init_db
 from app.api import router as api_router
-from app.utils.domain_validator import get_allowed_domains
-
+from app.routes import sites_router, dashboard_router
+from app.utils import get_current_user
+from app.db import SessionLocal
 import os
 
 app = FastAPI(title="WebPush Dashboard", version="1.0")
 
-# Initialize database tables
-init_db()
-
-# -------------------------------------------------
-# Create folders if not exist
-# -------------------------------------------------
+# create uploads
 os.makedirs(settings.UPLOADS_PATH, exist_ok=True)
 os.makedirs("app/static", exist_ok=True)
 
-# -------------------------------------------------
-# Static Mounts
-# -------------------------------------------------
+# mount static & uploads
 app.mount("/uploads", StaticFiles(directory=settings.UPLOADS_PATH), name="uploads")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
-# -------------------------------------------------
-# Dynamic CORS Middleware
-# -------------------------------------------------
-# Dashboard domain is always trusted
-BASE_ALLOWED = [
-    settings.DASHBOARD_DOMAIN,          # e.g. https://your-render-app.onrender.com
-]
+# init DB
+init_db()
 
-def cors_allow_origin(origin: str) -> bool:
-    """
-    Dynamically validate allowed origins:
-    - Dashboard domain always allowed
-    - Any website added by user in dashboard allowed
-    """
-    if origin in BASE_ALLOWED:
-        return True
+# minimal CORS to allow dashboard domain
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[settings.DASHBOARD_DOMAIN],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-    dynamic_domains = get_allowed_domains()  # pulls domains from DB
+# include routers
+app.include_router(views_router)
+app.include_router(api_router, prefix="/api")
+app.include_router(sites_router)
+app.include_router(dashboard_router)
 
-    return origin in dynamic_domains
-
-
+# dynamic CORS middleware (override for user origins)
 @app.middleware("http")
 async def dynamic_cors_middleware(request: Request, call_next):
-    """
-    Custom CORS logic:
-    - Reads the 'Origin' header
-    - Checks if the origin matches the dashboard domain or any user website
-    - If valid, adds CORS headers
-    """
     origin = request.headers.get("origin")
     response = await call_next(request)
-
-    if origin and cors_allow_origin(origin):
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-        response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-
+    if origin:
+        # check DB sites for domain match
+        db = SessionLocal()
+        from app.models import Site
+        match = db.query(Site).filter(Site.domain == origin).first()
+        db.close()
+        if match or origin == settings.DASHBOARD_DOMAIN:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     return response
-
-
-# -------------------------------------------------
-# Routers
-# -------------------------------------------------
-app.include_router(views_router)               
-app.include_router(api_router, prefix="/api")   
-
-
-# -------------------------------------------------
-# Root Route
-# -------------------------------------------------
-@app.get("/")
-def root():
-    return {"status": "running", "dashboard": settings.DASHBOARD_DOMAIN}
