@@ -46,3 +46,16 @@ class NotificationLog(Base):
     sent_to = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     site = relationship("Site", back_populates="notifications")
+    
+class Site(Base):
+    __tablename__ = "sites"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    name = Column(String, nullable=False)
+    domain = Column(String, nullable=False)  # <-- this stores allowed origin!
+    site_key = Column(String, unique=True)
+    vapid_public = Column(Text)
+    vapid_private = Column(Text)
+
+    user = relationship("User", back_populates="sites")
