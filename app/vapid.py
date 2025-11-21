@@ -3,7 +3,7 @@ from cryptography.hazmat.primitives import serialization
 import secrets
 
 
-def generate_vapid_keys():
+def generate_vapid_keys_pair():
     # Generate EC (P-256) private key
     private_key = ec.generate_private_key(ec.SECP256R1())
 
