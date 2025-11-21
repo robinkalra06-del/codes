@@ -13,3 +13,4 @@ alembic==1.12.0
 py_vapid==1.9.2
 httpx==0.24.1
 cryptography==41.0.3
+argon2-cffi
