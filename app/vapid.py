@@ -1,20 +1,15 @@
-# app/vapid.py
+from py_vapid import Vapid
 import secrets
-from py_vapid import Vapid02
-
 
 def generate_vapid_keys():
-    """
-    Generate VAPID keypair using py-vapid >= 2.0 (Vapid02)
-    """
-    v = Vapid02()
-    v.generate_keys()  # MUST generate first
+    # Create fresh VAPID keypair in memory
+    v = Vapid()
 
-    # Export PEM with the correct API
-    private_pem = v.private_key_pem().decode()
-    public_pem  = v.public_key_pem().decode()
+    # Correct attributes for Vapid02
+    priv = v.private_key.decode()
+    pub = v.public_key.decode()
 
-    return private_pem, public_pem
+    return priv, pub
 
 
 def gen_site_key():
