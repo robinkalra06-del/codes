@@ -4,8 +4,12 @@ from .config import settings
 
 pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-def hash_password(p): return pwd.hash(p)
-def verify_password(p, h): return pwd.verify(p, h)
+def hash_password(password: str):
+    password = password[:72]        
+    return pwd.hash(password)
+def verify_password(password: str, hashed: str):
+    password = password[:72]
+    return pwd.verify(password, hashed)
 
 def gen_site_key(): return secrets.token_urlsafe(32)
 
