@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 from app.db import SessionLocal
 from app.models import Site
 from app.utils import get_current_user
-priv, pub = generate_vapid_keys()
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
