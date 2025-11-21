@@ -7,14 +7,20 @@ from .config import settings
 from .db import SessionLocal
 from .models import User
 
-pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
+pwd_context = CryptContext(
+    schemes=["argon2", "bcrypt"],
+    default="argon2",
+    deprecated="auto"
+)
 
-def hash_password(password: str) -> str:
-    # bcrypt has 72 bytes limit; ensure short or truncate externally if needed
+def hash_password(password: str):
+    password = password[:72]        # bcrypt requirement
     return pwd_context.hash(password)
 
-def verify_password(plain: str, hashed: str) -> bool:
+def verify_password(plain: str, hashed: str):
+    plain = plain[:72]              # bcrypt requirement
     return pwd_context.verify(plain, hashed)
+
 
 def create_jwt(data: dict, expire_seconds: int = 60*60*24*7):
     payload = data.copy()
