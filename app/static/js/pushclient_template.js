@@ -1,6 +1,6 @@
 // Replace __SITE_KEY__ and __VAPID_PUBLIC_KEY__ when serving dynamically
-const SITE_KEY = "__SITE_KEY__";
-const VAPID_PUBLIC_KEY = "__VAPID_PUBLIC_KEY__";
+const SITE_KEY = "mehuloooooo09890";
+const VAPID_PUBLIC_KEY = "BLSVJhGPP86snyjE2ofVyVyLrD9e-HwyeySTzfhgGscpCKwYSFHzfU-oZTVxvLqet84IiD7bAo4k0NGhm_kewtM";
 
 function urlBase64ToUint8Array(base64String) {
   const padding = "=".repeat((4 - base64String.length % 4) % 4);
